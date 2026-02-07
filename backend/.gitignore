@@ -1,0 +1,12 @@
+# .NET
+bin/
+obj/
+publish/
+
+# Local settings
+appsettings.Development.json
+appsettings.exclude.json
+
+# Tooling
+.vs/
+*.user

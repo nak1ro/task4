@@ -1,0 +1,17 @@
+/task_requirements
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
