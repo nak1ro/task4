@@ -96,9 +96,10 @@ builder.Services.AddCors(options =>
 
         if (frontendUrl == "*")
         {
-            policy.AllowAnyOrigin()
+            policy.SetIsOriginAllowed(origin => true) // Allow any origin
                   .AllowAnyHeader()
-                  .AllowAnyMethod();
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // Allow cookies
         }
         else
         {
