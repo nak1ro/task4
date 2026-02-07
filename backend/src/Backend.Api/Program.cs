@@ -31,7 +31,8 @@ else
 }
 
 // Convert PostgreSql URI to connection string if needed
-if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
+// Render uses "postgres://" or "postgresql://"
+if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
 {
     try 
     {
