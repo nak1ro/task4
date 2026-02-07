@@ -1,0 +1,50 @@
+services:
+  # Backend Service
+  - type: web
+    name: task4-backend
+    runtime: docker
+    rootCommand: cd backend && docker build -t backend .
+    # Render's docker runtime automatically looks for Dockerfile in context context
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: task4-db
+          property: connectionString
+      - key: App__FrontendUrl
+        fromService:
+          type: web
+          name: task4-frontend
+          property: url
+      - key: Email__SmtpHost
+        value: smtp.resend.com
+      - key: Email__SmtpPort
+        value: 587
+      - key: Email__SmtpUser
+        value: resend
+      - key: Email__SmtpPass
+        sync: false # User must enter this in dashboard
+      - key: Email__FromAddress
+        value: onlooking@resend.dev # Or your verified domain
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
+  # Frontend Service
+  - type: web
+    name: task4-frontend
+    runtime: docker
+    dockerContext: ./frontend
+    dockerfilePath: ./frontend/Dockerfile
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: task4-backend
+          property: url
+
+databases:
+  - name: task4-db
+    databaseName: task4
+    user: task4user
+    plan: free # Verification required for free tier, or stick to starter
