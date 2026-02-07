@@ -3,9 +3,11 @@ services:
   - type: web
     name: task4-backend
     runtime: docker
-    rootCommand: cd backend && docker build -t backend .
-    # Render's docker runtime automatically looks for Dockerfile in context context
-    dockerContext: ./backend
+    repo: https://github.com/StartYourFork/Task4 # Optional, but good for context
+    plan: free
+    region: frankfurt # Optional
+    # Context should be root so Dockerfile paths work naturally
+    dockerContext: .
     dockerfilePath: ./backend/Dockerfile
     envVars:
       - key: ConnectionStrings__DefaultConnection
@@ -34,7 +36,9 @@ services:
   - type: web
     name: task4-frontend
     runtime: docker
-    dockerContext: ./frontend
+    plan: free
+    # Context root, Dockerfile in frontend
+    dockerContext: .
     dockerfilePath: ./frontend/Dockerfile
     envVars:
       - key: VITE_API_URL

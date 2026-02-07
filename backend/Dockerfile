@@ -3,12 +3,13 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore
-COPY ["src/Backend.Api/Backend.Api.csproj", "src/Backend.Api/"]
-RUN dotnet restore "src/Backend.Api/Backend.Api.csproj"
+# Paths are now relative to repo root
+COPY ["backend/src/Backend.Api/Backend.Api.csproj", "backend/src/Backend.Api/"]
+RUN dotnet restore "backend/src/Backend.Api/Backend.Api.csproj"
 
 # Copy everything else and build
-COPY . .
-WORKDIR "/src/src/Backend.Api"
+COPY backend/ backend/
+WORKDIR "/src/backend/src/Backend.Api"
 RUN dotnet publish "Backend.Api.csproj" -c Release -o /app/publish
 
 # Runtime Stage
