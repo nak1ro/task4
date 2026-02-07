@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import { Button } from '../components';
@@ -9,7 +9,11 @@ export const ConfirmEmailPage = () => {
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('');
 
+    const effectRan = useRef(false);
+
     useEffect(() => {
+        if (effectRan.current) return;
+
         const confirmEmail = async () => {
             const token = searchParams.get('token');
 
@@ -18,6 +22,9 @@ export const ConfirmEmailPage = () => {
                 setMessage('Invalid confirmation link. No token provided.');
                 return;
             }
+
+            // Mark as ran to prevent double execution in Strict Mode
+            effectRan.current = true;
 
             try {
                 const response = await authApi.confirmEmail(token);
