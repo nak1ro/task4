@@ -3,6 +3,7 @@ using Backend.Api.Data.Repositories;
 using Backend.Api.Domain.Entities;
 using Backend.Api.Dtos;
 using BCrypt.Net;
+using Npgsql; // For PostgresException
 
 namespace Backend.Api.Services;
 
@@ -27,31 +28,46 @@ public class AuthService : IAuthService
 
     public async Task<User> RegisterAsync(RegisterRequest request)
     {
-        // NOTA BENE: We do NOT check for email uniqueness here.
-        // The database UNIQUE INDEX will handle it and throw an exception if duplicate.
+        // 1. Transaction
+        await _userRepository.BeginTransactionAsync();
 
-        // 2. Create User Entity
-        string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-        var user = User.Create(request.FirstName, request.LastName, request.Email, passwordHash);
+        try
+        {
+            // NOTA BENE: We do NOT check for email uniqueness here.
+            // The database UNIQUE INDEX will handle it and throw an exception if duplicate.
 
-        // 3. Save to DB
-        await _userRepository.AddAsync(user);
-        await _userRepository.SaveChangesAsync();
+            // 2. Create User Entity
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var user = User.Create(request.FirstName, request.LastName, request.Email, passwordHash);
 
-        // 4. Send Email
-        // Construct link (assuming frontend route /confirm-email?token=...)
-        string frontendUrl = _configuration["App:FrontendUrl"];
-        string confirmationLink = $"{frontendUrl}/confirm-email?token={user.EmailConfirmationToken}";
-        
-        // Fire and forget email? Guideline says "asynchronously". 
-        // We can just await it here for simplicity in this task context, or use `Task.Run`.
-        // "the confirmation e-mail should be sent asynchronously" -> Task.Run to not block response?
-        // But if SMTP fails, user might want to know? 
-        // "Users are registered right away ... confirmation e-mail should be sent asynchronously"
-        // Let's await it to ensure it sends, or catch and log.
-        await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+            // 3. Save to DB
+            await _userRepository.AddAsync(user);
+            await _userRepository.SaveChangesAsync();
 
-        return user;
+            // 4. Send Email
+            string frontendUrl = _configuration["App:FrontendUrl"];
+            string confirmationLink = $"{frontendUrl}/confirm-email?token={user.EmailConfirmationToken}";
+            
+            await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+
+            // 5. Commit
+            await _userRepository.CommitTransactionAsync();
+
+            return user;
+        }
+        catch (Exception ex)
+        {
+            await _userRepository.RollbackTransactionAsync();
+
+            if (ex is Microsoft.EntityFrameworkCore.DbUpdateException dbEx && 
+                dbEx.InnerException is Npgsql.PostgresException pgEx && 
+                pgEx.SqlState == "23505") // Unique constraint violation
+            {
+                throw new Exception("Email is already registered.");
+            }
+
+            throw;
+        }
     }
 
     public async Task<User> LoginAsync(LoginRequest request)
@@ -82,14 +98,26 @@ public class AuthService : IAuthService
 
     public async Task ConfirmEmailAsync(string token)
     {
-        var user = await _userRepository.GetByConfirmationTokenAsync(token);
-        if (user == null)
-        {
-            throw new Exception("Invalid confirmation token.");
-        }
+        await _userRepository.BeginTransactionAsync();
 
-        user.ConfirmEmail();
-        await _userRepository.UpdateAsync(user);
-        await _userRepository.SaveChangesAsync();
+        try
+        {
+            var user = await _userRepository.GetByConfirmationTokenAsync(token);
+            if (user == null)
+            {
+                throw new Exception("Invalid confirmation token.");
+            }
+
+            user.ConfirmEmail();
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
+
+            await _userRepository.CommitTransactionAsync();
+        }
+        catch (Exception)
+        {
+            await _userRepository.RollbackTransactionAsync();
+            throw;
+        }
     }
 }

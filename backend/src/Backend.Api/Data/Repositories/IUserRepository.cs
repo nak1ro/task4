@@ -13,4 +13,7 @@ public interface IUserRepository
     Task DeleteAsync(User user);
     Task DeleteRangeAsync(IEnumerable<User> users); // For bulk delete
     Task SaveChangesAsync();
+    Task BeginTransactionAsync();
+    Task CommitTransactionAsync();
+    Task RollbackTransactionAsync();
 }

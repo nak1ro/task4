@@ -2,7 +2,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using FluentValidation.AspNetCore;
-using System.Reflection;
+using Backend.Api.Data;
+using Backend.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -53,7 +54,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
-        policy.WithOrigins(builder.Configuration["App:FrontendUrl"] ?? "http://localhost:5173")
+        var frontendUrl = builder.Configuration["App:FrontendUrl"];
+        if (string.IsNullOrEmpty(frontendUrl)) throw new InvalidOperationException("App:FrontendUrl is not configured");
+
+        policy.WithOrigins(frontendUrl)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -86,5 +90,12 @@ app.UseAuthorization();
 app.UseMiddleware<Backend.Api.Middleware.UserStatusMiddleware>();
 
 app.MapControllers();
+
+// Auto-migration on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
