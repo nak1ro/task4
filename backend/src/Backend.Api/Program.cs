@@ -18,8 +18,46 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Log connection string (masked) for debugging
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("CRITICAL: Connection string 'DefaultConnection' is null or empty!");
+}
+else
+{
+    Console.WriteLine($"Connection string found (length: {connectionString.Length}). Starts with: '{connectionString.Substring(0, Math.Min(connectionString.Length, 15))}...'");
+}
+
+// Convert PostgreSql URI to connection string if needed
+if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
+{
+    try 
+    {
+        var databaseUri = new Uri(connectionString);
+        var userInfo = databaseUri.UserInfo.Split(':');
+        var builderDb = new Npgsql.NpgsqlConnectionStringBuilder
+        {
+            Host = databaseUri.Host,
+            Port = databaseUri.Port,
+            Username = userInfo[0],
+            Password = userInfo[1],
+            Database = databaseUri.LocalPath.TrimStart('/'),
+            SslMode = Npgsql.SslMode.Require,
+            TrustServerCertificate = true // Often needed for hosted DBs
+        };
+        connectionString = builderDb.ToString();
+        Console.WriteLine("Successfully parsed Postgres URI format.");
+    }
+    catch (Exception ex)
+    {
+         Console.WriteLine($"Failed to parse Postgres URI: {ex.Message}");
+    }
+}
+
 builder.Services.AddDbContext<Backend.Api.Data.AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Repositories
 builder.Services.AddScoped<Backend.Api.Data.Repositories.IUserRepository, Backend.Api.Data.Repositories.UserRepository>();
