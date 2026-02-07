@@ -25,6 +25,8 @@ builder.Services.AddScoped<Backend.Api.Data.Repositories.IUserRepository, Backen
 
 // Services
 builder.Services.AddScoped<Backend.Api.Services.IEmailService, Backend.Api.Services.EmailService>();
+builder.Services.AddScoped<Backend.Api.Services.IAuthService, Backend.Api.Services.AuthService>();
+builder.Services.AddScoped<Backend.Api.Services.IUserService, Backend.Api.Services.UserService>();
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -15,6 +15,7 @@ public class UserStatusMiddleware
         _next = next;
     }
 
+    // CRITICAL: Checks user status before every request.
     public async Task InvokeAsync(HttpContext context, IUserRepository userRepository)
     {
         if (context.User.Identity?.IsAuthenticated == true)

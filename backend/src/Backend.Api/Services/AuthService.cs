@@ -27,12 +27,8 @@ public class AuthService : IAuthService
 
     public async Task<User> RegisterAsync(RegisterRequest request)
     {
-        // 1. Check if user exists (Optional optimization, but DB will catch it too via Unique Index)
-        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
-        if (existingUser != null)
-        {
-            throw new Exception("User with this email already exists."); // In production use a custom DuplicateException
-        }
+        // NOTA BENE: We do NOT check for email uniqueness here.
+        // The database UNIQUE INDEX will handle it and throw an exception if duplicate.
 
         // 2. Create User Entity
         string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);

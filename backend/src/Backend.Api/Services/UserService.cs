@@ -22,6 +22,7 @@ public class UserService : IUserService
         return _mapper.Map<List<UserDto>>(users);
     }
 
+    // IMPORTANT: Blocks multiple users at once.
     public async Task BlockUsersAsync(List<Guid> userIds)
     {
         foreach (var id in userIds)
@@ -36,6 +37,7 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
     }
 
+    // NOTE: Unblocks users, allowing them to login again.
     public async Task UnblockUsersAsync(List<Guid> userIds)
     {
         foreach (var id in userIds)
@@ -50,6 +52,7 @@ public class UserService : IUserService
         await _userRepository.SaveChangesAsync();
     }
 
+    // NOTA BENE: Performs HARD delete. Users are removed from DB.
     public async Task DeleteUsersAsync(List<Guid> userIds)
     {
         var usersToDelete = new List<User>();

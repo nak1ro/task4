@@ -61,8 +61,16 @@ public class User
         Status = UserStatus.Active;
     }
 
+    // IMPORTANT: Changes user status from Unverified to Active.
+    // NOTA BENE: Blocked users must remain blocked.
     public void ConfirmEmail()
     {
+        if (Status == UserStatus.Blocked)
+        {
+            // NOTE: Do nothing if blocked
+            return;
+        }
+        
         Status = UserStatus.Active;
         EmailConfirmationToken = null;
     }
