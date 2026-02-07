@@ -36,7 +36,14 @@ public class EmailService : IEmailService
 
             using var client = new SmtpClient();
             // Connect with STARTTLS
-            await client.ConnectAsync(emailConfig["SmtpHost"], int.Parse(emailConfig["SmtpPort"]), MailKit.Security.SecureSocketOptions.StartTls);
+            // Connect with SSL (Port 465 is preferred in some environments over 587)
+            // If config has port 465, use SslOnConnect, otherwise StartTls
+            int port = int.Parse(emailConfig["SmtpPort"]);
+            var secureSocketOptions = port == 465 
+                ? MailKit.Security.SecureSocketOptions.SslOnConnect 
+                : MailKit.Security.SecureSocketOptions.StartTls;
+
+            await client.ConnectAsync(emailConfig["SmtpHost"], port, secureSocketOptions);
 
             // Authenticate if credentials are provided
             var smtpUser = emailConfig["SmtpUser"];
@@ -55,7 +62,6 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Failed to send email to {toEmail}");
-            // Don't throw, just log. We don't want to break registration if email fails (or maybe we do? Requirement says "asynchronously", implying fire-and-forget or background job, but simplistic async/await is OK here for now)
         }
     }
 }

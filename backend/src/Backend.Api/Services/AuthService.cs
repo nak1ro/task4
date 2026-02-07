@@ -45,7 +45,20 @@ public class AuthService : IAuthService
             string frontendUrl = _configuration["App:FrontendUrl"];
             string confirmationLink = $"{frontendUrl}/confirm-email?token={user.EmailConfirmationToken}";
             
-            await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+            // Fire-and-forget email sending to not block the response
+            _ = Task.Run(async () => 
+            {
+                try
+                {
+                    await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+                }
+                catch (Exception ex)
+                {
+                    // Since we are in a background task, we can't throw to the API caller.
+                    // Just log the error (EmailService already logs, but good to be safe).
+                    Console.WriteLine($"Background email sending failed: {ex.Message}");
+                }
+            });
 
             // 5. Commit
             await _userRepository.CommitTransactionAsync();
