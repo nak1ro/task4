@@ -1,4 +1,4 @@
-import { LockClosedIcon, LockOpenIcon, TrashIcon, UserMinusIcon } from '@heroicons/react/24/outline';
+import { LockOpenIcon, TrashIcon, UserMinusIcon } from '@heroicons/react/24/outline';
 import { Button, IconButton, Tooltip } from '../../components';
 
 interface UserToolbarProps {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { LoginForm } from '../features/auth/LoginForm';
 import { RegisterForm } from '../features/auth/RegisterForm';
-import { Button } from '../components';
+
 
 export const AuthPage = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -47,8 +47,8 @@ export const AuthPage = () => {
                                 setSuccessMessage(null);
                             }}
                             className={`flex-1 pb-2 text-center font-medium transition-colors ${isLogin
-                                    ? 'border-b-2 border-blue-600 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             Login
@@ -59,8 +59,8 @@ export const AuthPage = () => {
                                 setSuccessMessage(null);
                             }}
                             className={`flex-1 pb-2 text-center font-medium transition-colors ${!isLogin
-                                    ? 'border-b-2 border-blue-600 text-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                                ? 'border-b-2 border-blue-600 text-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
                             Register
