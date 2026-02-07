@@ -14,7 +14,7 @@ services:
           name: task4-db
           property: connectionString
       - key: App__FrontendUrl
-        value: "*" # Allow any origin for simplicity in university task
+        sync: false # Must be set in Dashboard (e.g. '*' or 'https://task4-frontend.onrender.com')
       - key: Email__SmtpHost
         value: smtp.resend.com
       - key: Email__SmtpPort
