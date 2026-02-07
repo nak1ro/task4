@@ -26,6 +26,9 @@ public class AppDbContext : DbContext
 
             // UNIQUE INDEX on Email
             entity.HasIndex(e => e.Email).IsUnique();
+
+            // Index on LastLoginTime for sorting
+            entity.HasIndex(e => e.LastLoginTime);
         });
     }
 }

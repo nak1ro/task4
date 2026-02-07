@@ -39,14 +39,8 @@ public class AuthController : ControllerBase
         {
             var user = await _authService.LoginAsync(request);
 
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}")
-            };
+            var principal = _authService.CreateUserPrincipal(user);
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = true,
@@ -55,7 +49,7 @@ public class AuthController : ControllerBase
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
+                principal,
                 authProperties);
 
             return Ok(new { message = "Login successful" });
@@ -79,12 +73,6 @@ public class AuthController : ControllerBase
         try
         {
             await _authService.ConfirmEmailAsync(token);
-            // Redirect to frontend login page? 
-            // Or just return JSON? 
-            // Usually email link needs to land on a page.
-            // If API is pure REST, frontend handles the token extract and call.
-            // "Clicking the link ... changes status".
-            // Backend endpoint updates status.
             return Ok(new { message = "Email confirmed successfully" });
         }
         catch (Exception ex)

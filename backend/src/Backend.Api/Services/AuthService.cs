@@ -33,9 +33,6 @@ public class AuthService : IAuthService
 
         try
         {
-            // NOTA BENE: We do NOT check for email uniqueness here.
-            // The database UNIQUE INDEX will handle it and throw an exception if duplicate.
-
             // 2. Create User Entity
             string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             var user = User.Create(request.FirstName, request.LastName, request.Email, passwordHash);
@@ -119,5 +116,18 @@ public class AuthService : IAuthService
             await _userRepository.RollbackTransactionAsync();
             throw;
         }
+    }
+
+    public System.Security.Claims.ClaimsPrincipal CreateUserPrincipal(User user)
+    {
+        var claims = new List<System.Security.Claims.Claim>
+        {
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, user.Email),
+            new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, $"{user.FirstName} {user.LastName}")
+        };
+
+        var claimsIdentity = new System.Security.Claims.ClaimsIdentity(claims, Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme);
+        return new System.Security.Claims.ClaimsPrincipal(claimsIdentity);
     }
 }
