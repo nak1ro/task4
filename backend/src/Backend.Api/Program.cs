@@ -1,13 +1,15 @@
+using Backend.Api.Data;
+using Backend.Api.Data.Repositories;
+using Backend.Api.Middleware;
+using Backend.Api.Services;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using FluentValidation.AspNetCore;
-using Backend.Api.Data;
-using Backend.Api.Services;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -17,10 +19,8 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Task4 API", Version = "v1" });
 });
 
-// Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Log connection string (masked) for debugging
 if (string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine("CRITICAL: Connection string 'DefaultConnection' is null or empty!");
@@ -30,22 +30,20 @@ else
     Console.WriteLine($"Connection string found (length: {connectionString.Length}). Starts with: '{connectionString.Substring(0, Math.Min(connectionString.Length, 15))}...'");
 }
 
-// Convert PostgreSql URI to connection string if needed
-// Render uses "postgres://" or "postgresql://"
 if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
 {
     try 
     {
         var databaseUri = new Uri(connectionString);
         var userInfo = databaseUri.UserInfo.Split(':');
-        var builderDb = new Npgsql.NpgsqlConnectionStringBuilder
+        var builderDb = new NpgsqlConnectionStringBuilder
         {
             Host = databaseUri.Host,
             Port = databaseUri.Port == -1 ? 5432 : databaseUri.Port,
             Username = userInfo[0],
             Password = userInfo[1],
             Database = databaseUri.LocalPath.TrimStart('/'),
-            SslMode = Npgsql.SslMode.Require,
+            SslMode = SslMode.Require,
             TrustServerCertificate = true // Often needed for hosted DBs
         };
         connectionString = builderDb.ToString();
@@ -57,24 +55,24 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
     }
 }
 
-builder.Services.AddDbContext<Backend.Api.Data.AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 // Repositories
-builder.Services.AddScoped<Backend.Api.Data.Repositories.IUserRepository, Backend.Api.Data.Repositories.UserRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Services
-builder.Services.AddScoped<Backend.Api.Services.IEmailService, Backend.Api.Services.EmailService>();
-builder.Services.AddScoped<Backend.Api.Services.IAuthService, Backend.Api.Services.AuthService>();
-builder.Services.AddScoped<Backend.Api.Services.IUserService, Backend.Api.Services.UserService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax; // Lax for local dev with different ports
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Required for SameSite=None if we used that, but handy generally
+        options.Cookie.SameSite = SameSiteMode.Lax; 
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; 
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.Events.OnRedirectToLogin = context =>
         {
@@ -135,11 +133,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Register UserStatusMiddleware
-app.UseMiddleware<Backend.Api.Middleware.UserStatusMiddleware>();
+app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
 
-// Auto-migration on startup
+// Auto migration on startup
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
