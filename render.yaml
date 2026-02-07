@@ -3,7 +3,6 @@ services:
   - type: web
     name: task4-backend
     runtime: docker
-    repo: https://github.com/StartYourFork/Task4 # Optional, but good for context
     plan: free
     region: frankfurt # Optional
     # Context should be root so Dockerfile paths work naturally
