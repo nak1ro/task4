@@ -35,10 +35,17 @@ public class EmailService : IEmailService
             };
 
             using var client = new SmtpClient();
-            await client.ConnectAsync(emailConfig["SmtpHost"], int.Parse(emailConfig["SmtpPort"]), false);
+            // Connect with STARTTLS
+            await client.ConnectAsync(emailConfig["SmtpHost"], int.Parse(emailConfig["SmtpPort"]), MailKit.Security.SecureSocketOptions.StartTls);
+
+            // Authenticate if credentials are provided
+            var smtpUser = emailConfig["SmtpUser"];
+            var smtpPass = emailConfig["SmtpPass"];
             
-            // Note: For Mailhog (dev), no auth needed usually. 
-            // For Prod, you'd add: await client.AuthenticateAsync(user, pass);
+            if (!string.IsNullOrEmpty(smtpUser) && !string.IsNullOrEmpty(smtpPass))
+            {
+                await client.AuthenticateAsync(smtpUser, smtpPass);
+            }
             
             await client.SendAsync(message);
             await client.DisconnectAsync(true);
