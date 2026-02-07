@@ -3,11 +3,11 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install dependencies
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci
 
 # Copy source and build
-COPY . .
+COPY frontend/ .
 # We accept VITE_API_URL as a build arg or env var. 
 # Note: Vite embeds env vars at build time. 
 # For Render, we might need to trick it or use a runtime solution, 
