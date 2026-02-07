@@ -57,10 +57,19 @@ builder.Services.AddCors(options =>
         var frontendUrl = builder.Configuration["App:FrontendUrl"];
         if (string.IsNullOrEmpty(frontendUrl)) throw new InvalidOperationException("App:FrontendUrl is not configured");
 
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        if (frontendUrl == "*")
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(frontendUrl)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 

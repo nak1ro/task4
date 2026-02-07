@@ -15,10 +15,7 @@ services:
           name: task4-db
           property: connectionString
       - key: App__FrontendUrl
-        fromService:
-          type: web
-          name: task4-frontend
-          property: url
+        value: "*" # Allow any origin for simplicity in university task
       - key: Email__SmtpHost
         value: smtp.resend.com
       - key: Email__SmtpPort
@@ -42,10 +39,7 @@ services:
     dockerfilePath: ./frontend/Dockerfile
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: task4-backend
-          property: url
+        sync: false # Must be updated manually after Backend is deployed
 
 databases:
   - name: task4-db
