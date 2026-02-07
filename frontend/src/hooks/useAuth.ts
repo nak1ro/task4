@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { User, AuthResponse } from '../types';
-import { authApi, LoginRequest, RegisterRequest } from '../api/authApi';
+import type { User } from '../types';
+import type { LoginRequest, RegisterRequest } from '../api/authApi';
+import { authApi } from '../api/authApi';
 
 export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
@@ -12,7 +13,16 @@ export const useAuth = () => {
         setIsLoading(true);
         try {
             const response = await authApi.getMe();
-            setUser(response.data);
+            // Convert MeResponse to User format for frontend state
+            const [firstName, ...lastNameParts] = (response.data.name || '').split(' ');
+            setUser({
+                id: response.data.id,
+                firstName: firstName || '',
+                lastName: lastNameParts.join(' ') || '',
+                email: response.data.email,
+                status: 'Active',
+                registrationTime: new Date().toISOString(),
+            });
             setIsAuthenticated(true);
         } catch (err) {
             setUser(null);

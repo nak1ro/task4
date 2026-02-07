@@ -1,5 +1,5 @@
 import client from './client';
-import { User, AuthResponse } from '../types';
+import type { AuthResponse } from '../types';
 
 export interface RegisterRequest {
     firstName: string;
@@ -11,6 +11,12 @@ export interface RegisterRequest {
 export interface LoginRequest {
     email: string;
     password: string;
+}
+
+export interface MeResponse {
+    id: string;
+    email: string;
+    name: string;
 }
 
 export const authApi = {
@@ -27,7 +33,7 @@ export const authApi = {
     },
 
     getMe: async () => {
-        return client.get<User>('/auth/me');
+        return client.get<MeResponse>('/auth/me');
     },
 
     confirmEmail: async (token: string) => {

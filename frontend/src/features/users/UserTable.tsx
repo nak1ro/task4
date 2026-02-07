@@ -1,4 +1,4 @@
-import { User } from '../../types';
+import type { User } from '../../types';
 import { Checkbox, Badge, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components';
 
 interface UserTableProps {
