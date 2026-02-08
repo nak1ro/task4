@@ -64,7 +64,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Services
 builder.Services.AddOptions();
-builder.Services.AddHttpClient<ResendClient>();
+builder.Services.AddHttpClient<ResendClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com");
+});
 builder.Services.Configure<ResendClientOptions>(options =>
 {
     options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
