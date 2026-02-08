@@ -35,15 +35,18 @@ public class EmailService : IEmailService
             };
 
             using var client = new SmtpClient();
-            // Connect with STARTTLS
-            // Connect with SSL (Port 465 is preferred in some environments over 587)
-            // If config has port 465, use SslOnConnect, otherwise StartTls
+            client.Timeout = 10000; // 10 seconds timeout for operations
+            client.ConnectTimeout = 10000; // 10 seconds for connection
+
+            // Connect with SSL or STARTTLS based on port
             int port = int.Parse(emailConfig["SmtpPort"]);
             var secureSocketOptions = port == 465 
-                ? MailKit.Security.SecureSocketOptions.SslOnConnect 
+                ? MailKit.Security.SecureSocketOptions.Auto 
                 : MailKit.Security.SecureSocketOptions.StartTls;
 
+            _logger.LogInformation($"Connecting to SMTP server {emailConfig["SmtpHost"]}:{port}...");
             await client.ConnectAsync(emailConfig["SmtpHost"], port, secureSocketOptions);
+            _logger.LogInformation("Connected successfully.");
 
             // Authenticate if credentials are provided
             var smtpUser = emailConfig["SmtpUser"];

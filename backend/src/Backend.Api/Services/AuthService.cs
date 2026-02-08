@@ -50,13 +50,15 @@ public class AuthService : IAuthService
             {
                 try
                 {
+                    _logger.LogInformation($"[Background] Starting email send to {user.Email}...");
                     await _emailService.SendConfirmationEmailAsync(user.Email, confirmationLink);
+                    _logger.LogInformation($"[Background] Email sent successfully to {user.Email}");
                 }
                 catch (Exception ex)
                 {
                     // Since we are in a background task, we can't throw to the API caller.
                     // Just log the error (EmailService already logs, but good to be safe).
-                    Console.WriteLine($"Background email sending failed: {ex.Message}");
+                    _logger.LogError(ex, $"[Background] Email sending failed: {ex.Message}");
                 }
             });
 
