@@ -2,7 +2,10 @@ import { useState, useCallback } from 'react';
 import type { User } from '../types';
 import { usersApi } from '../api/usersApi';
 
+import { useAuth } from './useAuth';
+
 export const useUsers = () => {
+    const { user: currentUser, logout } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -38,12 +41,22 @@ export const useUsers = () => {
         }
     };
 
-    const performAction = async (action: (ids: string[]) => Promise<any>) => {
+    const performAction = async (action: (ids: string[]) => Promise<any>, shouldLogoutIfSelf: boolean = false) => {
         if (selectedIds.size === 0) return;
+
+        const idsArray = Array.from(selectedIds);
 
         setIsLoading(true);
         try {
-            await action(Array.from(selectedIds));
+            await action(idsArray);
+
+            // If the user blocked/deleted themselves, log them out immediately
+            if (shouldLogoutIfSelf && currentUser && idsArray.includes(currentUser.id)) {
+                await logout();
+                window.location.reload(); // Force reload to redirect to login
+                return; // Stop further execution (like fetching users)
+            }
+
             await fetchUsers(); // Refresh list
             setSelectedIds(new Set()); // Clear selection
         } catch (err: any) {
@@ -58,10 +71,10 @@ export const useUsers = () => {
         }
     };
 
-    const blockUsers = () => performAction(usersApi.block);
+    const blockUsers = () => performAction(usersApi.block, true);
     const unblockUsers = () => performAction(usersApi.unblock);
-    const deleteUsers = () => performAction(usersApi.delete);
-    const deleteUnverifiedUsers = () => performAction(usersApi.deleteUnverified);
+    const deleteUsers = () => performAction(usersApi.delete, true);
+    const deleteUnverifiedUsers = () => performAction(usersApi.deleteUnverified, true);
 
     return {
         users,

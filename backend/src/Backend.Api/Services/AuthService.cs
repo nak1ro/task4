@@ -46,6 +46,13 @@ public class AuthService : IAuthService
 
             // 4. Send Email
             string frontendUrl = _configuration["App:FrontendUrl"];
+            if (string.IsNullOrWhiteSpace(frontendUrl) || frontendUrl == "*")
+            {
+               // Fallback for safety, though configuration should enforce this
+               frontendUrl = "https://task4-intranstition-maxim-azarov.shop";
+            }
+            // Ensure no trailing slash for consistent appending
+            frontendUrl = frontendUrl.TrimEnd('/');
             string confirmationLink = $"{frontendUrl}/confirm-email?token={user.EmailConfirmationToken}";
             
             // Fire-and-forget email sending to not block the response
