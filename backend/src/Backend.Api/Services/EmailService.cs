@@ -36,7 +36,6 @@ public class EmailService : IEmailService
 
             using var client = new SmtpClient();
             client.Timeout = 10000; // 10 seconds timeout for operations
-            client.ConnectTimeout = 10000; // 10 seconds for connection
 
             // Connect with SSL or STARTTLS based on port
             int port = int.Parse(emailConfig["SmtpPort"]);
