@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Npgsql;
+using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,12 +63,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Services
-builder.Services.AddHttpClient();
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddResend(options =>
+builder.Services.AddOptions();
+builder.Services.AddHttpClient<ResendClient>();
+builder.Services.Configure<ResendClientOptions>(options =>
 {
     options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
 });
+builder.Services.AddTransient<IResend, ResendClient>();
+builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
