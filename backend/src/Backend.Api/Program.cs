@@ -11,9 +11,8 @@ using Resend;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -22,21 +21,22 @@ builder.Services.AddSwaggerGen(c =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-if (string.IsNullOrEmpty(connectionString))
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    Console.WriteLine("CRITICAL: Connection string 'DefaultConnection' is null or empty!");
-}
-else
-{
-    Console.WriteLine($"Connection string found (length: {connectionString.Length}). Starts with: '{connectionString.Substring(0, Math.Min(connectionString.Length, 15))}...'");
+    throw new InvalidOperationException("CRITICAL: Connection string 'DefaultConnection' is missing/empty.");
 }
 
-if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgres://") || connectionString.StartsWith("postgresql://")))
+if (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
 {
-    try 
+    try
     {
         var databaseUri = new Uri(connectionString);
-        var userInfo = databaseUri.UserInfo.Split(':');
+        var userInfo = databaseUri.UserInfo.Split(':', 2);
+
+        if (userInfo.Length != 2)
+            throw new InvalidOperationException("Invalid Postgres URI: missing username/password.");
+
         var builderDb = new NpgsqlConnectionStringBuilder
         {
             Host = databaseUri.Host,
@@ -45,46 +45,54 @@ if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("pos
             Password = userInfo[1],
             Database = databaseUri.LocalPath.TrimStart('/'),
             SslMode = SslMode.Require,
-            TrustServerCertificate = true // Often needed for hosted DBs
+            TrustServerCertificate = true
         };
+
         connectionString = builderDb.ToString();
         Console.WriteLine("Successfully parsed Postgres URI format.");
     }
     catch (Exception ex)
     {
-         Console.WriteLine($"Failed to parse Postgres URI: {ex.Message}");
+        throw new InvalidOperationException($"Failed to parse Postgres URI connection string: {ex.Message}", ex);
     }
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
-// Services
 builder.Services.AddOptions();
-builder.Services.AddHttpClient<ResendClient>(client =>
-{
-    client.BaseAddress = new Uri("https://api.resend.com");
-});
+
+var resendApiKey = builder.Configuration["Resend:ApiKey"];
+if (string.IsNullOrWhiteSpace(resendApiKey))
+    throw new InvalidOperationException("Resend:ApiKey is missing. Set it in appsettings or environment variables.");
+
 builder.Services.Configure<ResendClientOptions>(options =>
 {
-    options.ApiToken = builder.Configuration["Resend:ApiKey"]!;
+    options.ApiToken = resendApiKey;
 });
-builder.Services.AddTransient<IResend, ResendClient>();
+
+builder.Services.AddTransient<ResendLoggingHandler>();
+builder.Services.AddHttpClient<IResend, ResendClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com");
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<ResendLoggingHandler>();
+
 builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax; 
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; 
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
+
         options.Events.OnRedirectToLogin = context =>
         {
             context.Response.StatusCode = 401;
@@ -97,20 +105,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
         var frontendUrl = builder.Configuration["App:FrontendUrl"];
-        if (string.IsNullOrEmpty(frontendUrl)) throw new InvalidOperationException("App:FrontendUrl is not configured");
+        if (string.IsNullOrWhiteSpace(frontendUrl))
+            throw new InvalidOperationException("App:FrontendUrl is not configured.");
 
         if (frontendUrl == "*")
         {
-            policy.SetIsOriginAllowed(origin => true) // Allow any origin
+            policy.SetIsOriginAllowed(_ => true)
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials(); // Allow cookies
+                  .AllowCredentials();
         }
         else
         {
@@ -122,15 +130,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-// FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -149,7 +154,6 @@ app.UseMiddleware<UserStatusMiddleware>();
 
 app.MapControllers();
 
-// Auto migration on startup
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
